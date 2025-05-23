@@ -8,6 +8,9 @@ const mongoose = require('mongoose');
 const logger = require('morgan');
 const cors = require('cors');
 const petRouter = require('./controllers/pets.js');
+const testJwtRouter = require('./controllers/test-jwt');
+const authRouter = require('./controllers/auth');
+const userRouter = require('./controllers/users.js')
 
 // Initialize App
 const app = express();
@@ -27,6 +30,10 @@ app.use(logger('dev'));
 
 // Routes
 app.use('/pets', petRouter);
+app.use('/auth', authRouter);
+app.use('/test', testJwtRouter);
+app.use('/users', userRouter);
+
 
 // Start Server
 app.listen(PORT, () => {

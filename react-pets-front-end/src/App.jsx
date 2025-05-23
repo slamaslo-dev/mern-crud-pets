@@ -1,33 +1,42 @@
-import { useState, useEffect } from "react";
-
 import "./App.css";
-
+import { useState, useEffect, useContext} from "react";
+import { Routes, Route } from "react-router";
 import * as petService from "./services/petService";
-
 import PetList from "./components/PetList/PetList";
 import PetDetail from "./components/PetDetail/PetDetail";
 import PetForm from "./components/PetForm/PetForm";
 
+import NavBar from "./components/NavBar/NavBar";
+import SignUpForm from "./components/SignUpForm/SignUpForm";
+import SignInForm from "./components/SignInForm/SignInForm";
+
+import { UserContext } from './contexts/UserContext'
+
+
 function App() {
+  const { user } = useContext(UserContext);
   const [pets, setPets] = useState([]);
   const [selected, setSelected] = useState(null);
-  // State variable to control form visibility.
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
+    if (!user) return; // Don't fetch if no user is logged in
+
     const fetchPets = async () => {
       try {
         const fetchedPets = await petService.index();
+        // Don't forget to pass the error object to the new Error
         if (fetchedPets.err) {
-          throw new Error(`Error fetching pets: ${fetchedPets.err}`);
+          throw new Error(fetchedPets.err);
         }
         setPets(fetchedPets);
       } catch (err) {
+        // Log the error object
         console.log(err);
       }
     };
     fetchPets();
-  }, []);
+  }, [user]); // Runs on mount AND whenever user changes
 
   const handleSelect = (pet) => {
     setSelected(pet);
@@ -42,7 +51,6 @@ function App() {
   const handleAddPet = async (formData) => {
     try {
       const newPet = await petService.create(formData);
-
       if (newPet.err) {
         throw new Error(newPet.err);
       }
@@ -79,7 +87,7 @@ function App() {
     }
   };
 
-    const handleDeletePet = async (petId) => {
+  const handleDeletePet = async (petId) => {
     try {
       const deletedPet = await petService.deletePet(petId);
 
@@ -97,25 +105,41 @@ function App() {
 
   return (
     <>
-      <PetList
-        pets={pets}
-        handleSelect={handleSelect}
-        handleFormView={handleFormView}
-        isFormOpen={isFormOpen}
-      />
-      {isFormOpen ? (
-        <PetForm
-          handleAddPet={handleAddPet}
-          selected={selected}
-          handleUpdatePet={handleUpdatePet}
+      <NavBar />
+      <Routes>
+        <Route
+          path="/"
+          element={
+            user ? (
+              <>
+                <PetList
+                  pets={pets}
+                  handleSelect={handleSelect}
+                  handleFormView={handleFormView}
+                  isFormOpen={isFormOpen}
+                />
+                {isFormOpen ? (
+                  <PetForm
+                    handleAddPet={handleAddPet}
+                    selected={selected}
+                    handleUpdatePet={handleUpdatePet}
+                  />
+                ) : (
+                  <PetDetail
+                    selected={selected}
+                    handleFormView={handleFormView}
+                    handleDeletePet={handleDeletePet}
+                  />
+                )}
+              </>
+            ) : (
+              <div>Please sign up or log in to view your pets.</div>
+            )
+          }
         />
-      ) : (
-        <PetDetail
-          selected={selected}
-          handleFormView={handleFormView}
-          handleDeletePet={handleDeletePet}
-        />
-      )}
+        <Route path="/sign-up" element={<SignUpForm />} />
+        <Route path="/sign-in" element={<SignInForm />} />
+      </Routes>
     </>
   );
 }

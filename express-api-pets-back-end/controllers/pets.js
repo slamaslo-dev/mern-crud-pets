@@ -2,10 +2,13 @@ const Pet = require('../models/pet')
 const express = require('express')
 const router = express.Router()
 
+const verifyToken = require('../middleware/verify-token');
+
+
 // CREATE
-router.post('/', async (req, res) => {
+router.post('/', verifyToken, async (req, res) => {
     try {
-        const createdPet = await Pet.create(req.body)
+        const createdPet = await Pet.create({...req.body, owner: req.user._id})
         res.status(201).json(createdPet)
     } catch (err) {
         res.status(500).json({ err: err.message })
@@ -13,9 +16,9 @@ router.post('/', async (req, res) => {
 })
 
 // READ ALL (INDEX)
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
     try {
-        const foundPets = await Pet.find()
+        const foundPets = await Pet.find({owner: req.user._id})
         res.status(200).json(foundPets)
     } catch (err) {
         res.status(500).json({ err: err.message })
@@ -23,9 +26,12 @@ router.get('/', async (req, res) => {
 })
 
 // READ ONE (SHOW)
-router.get('/:petId', async (req, res) => {
+router.get('/:petId', verifyToken, async (req, res) => {
     try {
-        const foundPet = await Pet.findById(req.params.petId)
+        const foundPet = await Pet.findOne({
+            _id: req.params.petId,
+            owner: req.user._id
+        })
         if (!foundPet) {
             return res.status(404).json({ err: 'Pet not found' })
         }
@@ -36,11 +42,11 @@ router.get('/:petId', async (req, res) => {
 })
 
 // UPDATE
-router.put('/:petId', async (req, res) => {
+router.put('/:petId', verifyToken, async (req, res) => {
     try {
-        const updatedPet = await Pet.findByIdAndUpdate(
-            req.params.petId, 
-            req.body, 
+        const updatedPet = await Pet.findOneAndUpdate(
+            { _id: req.params.petId, owner: req.user._id },
+            req.body,
             { new: true, runValidators: true }
         )
         if (!updatedPet) {
@@ -53,9 +59,12 @@ router.put('/:petId', async (req, res) => {
 })
 
 // DELETE
-router.delete('/:petId', async (req, res) => {
+router.delete('/:petId', verifyToken, async (req, res) => {
     try {
-        const deletedPet = await Pet.findByIdAndDelete(req.params.petId)
+        const deletedPet = await Pet.findOneAndDelete({
+            _id: req.params.petId,
+            owner: req.user._id
+        })
         if (!deletedPet) {
             return res.status(404).json({ err: 'Pet not found' })
         }
